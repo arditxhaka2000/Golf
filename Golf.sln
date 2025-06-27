@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Golf.Backend", "Golf.Backend\Golf.Backend.csproj", "{17CA534D-C6D1-43C2-95F4-AF8BD7946F1A}"
+EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "Golf.Frontend", "Golf.Frontend\Golf.Frontend.esproj", "{EB90C967-E8BA-4394-8701-3C07DFB8706E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{17CA534D-C6D1-43C2-95F4-AF8BD7946F1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17CA534D-C6D1-43C2-95F4-AF8BD7946F1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17CA534D-C6D1-43C2-95F4-AF8BD7946F1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{17CA534D-C6D1-43C2-95F4-AF8BD7946F1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB90C967-E8BA-4394-8701-3C07DFB8706E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB90C967-E8BA-4394-8701-3C07DFB8706E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB90C967-E8BA-4394-8701-3C07DFB8706E}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{EB90C967-E8BA-4394-8701-3C07DFB8706E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB90C967-E8BA-4394-8701-3C07DFB8706E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB90C967-E8BA-4394-8701-3C07DFB8706E}.Release|Any CPU.Deploy.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {36F91B78-6558-40CB-857D-E94A23FF3400}
+	EndGlobalSection
+EndGlobal
