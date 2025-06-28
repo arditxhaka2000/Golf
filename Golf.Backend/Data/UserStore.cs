@@ -47,4 +47,14 @@ public class UserStore
     {
         return _users.Values.Any(u => u.Email.Equals(email, StringComparison.OrdinalIgnoreCase));
     }
+    //Some additional methods for user management
+    public static User? GetUserById(string userId)
+    {
+        return _users.Values.FirstOrDefault(u => u.Id == userId);
+    }
+
+    public static IEnumerable<User> GetAllUsers()
+    {
+        return _users.Values;
+    }
 } 
