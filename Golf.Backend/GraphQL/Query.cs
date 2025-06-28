@@ -9,7 +9,6 @@ public class Query
 {
     public string Hello() => "Hello from GraphQL!";
 
-    // Auth queries
     public async Task<Golf.Backend.Models.User?> GetCurrentUserAsync(
         string token,
         [Service] IAuthService authService)
@@ -17,7 +16,6 @@ public class Query
         return await authService.GetCurrentUserAsync(token);
     }
 
-    // Player queries
     public async Task<Player?> GetPlayerAsync(
         [ID] Guid id,
         [Service] IPlayerService playerService)
@@ -41,9 +39,8 @@ public class Query
         return await playerService.GetPlayersAsync();
     }
 
-    // Course queries (local database)
     public async Task<Course?> GetCourseAsync(
-        [ID] int id,
+        [ID] Guid id,
         [Service] ICourseService courseService)
     {
         return await courseService.GetCourseAsync(id);
@@ -56,12 +53,11 @@ public class Query
     }
 
     public async Task<IEnumerable<CourseSearchResult>> SearchCoursesAsync(
-     string name,
-     [Service] ICourseService courseService)
+        string name,
+        [Service] ICourseService courseService)
     {
         return await courseService.SearchCoursesAsync(name);
     }
-
 
     public async Task<CourseDetails?> GetExternalCourseDetailsAsync(
         string courseId,
@@ -75,7 +71,6 @@ public class Query
         return await golfCourseApiService.GetCourseDetailsAsync(courseId);
     }
 
-    // Round queries
     public async Task<IEnumerable<Round>> GetPlayerRoundsAsync(
         [ID] Guid playerId,
         int limit,
@@ -100,7 +95,6 @@ public class Query
         return await roundService.GetPlayerRoundsAsync(player.Id, limit);
     }
 
-    // Handicap queries
     public async Task<decimal?> CalculateHandicapAsync(
         [ID] Guid playerId,
         [Service] IPlayerService playerService)
@@ -122,4 +116,3 @@ public class Query
         return await playerService.CalculateCurrentHandicapAsync(player.Id);
     }
 }
-

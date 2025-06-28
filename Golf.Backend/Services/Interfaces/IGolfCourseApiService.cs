@@ -1,4 +1,6 @@
-﻿namespace Golf.Backend.Services.Interfaces
+﻿using Golf.Backend.Models;
+
+namespace Golf.Backend.Services.Interfaces
 {
     public interface IGolfCourseApiService
     {

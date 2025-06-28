@@ -11,8 +11,11 @@ export const SEARCH_COURSES_MUTATION = gql`
       id
       name
       location
+      externalApiId
       courseRating
       slopeRating
+      isImported
+      isFromApi
       holes {
         holeNumber
         par
@@ -29,6 +32,7 @@ export const IMPORT_COURSE_MUTATION = gql`
       name
       courseRating
       slopeRating
+      location
       externalApiId
       holes {
         holeNumber

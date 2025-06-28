@@ -4,7 +4,7 @@ namespace Golf.Backend.Models
 {
     public class Course
     {
-        public int Id { get; set; }
+        public Guid Id { get; set; } // Keep as Guid for consistency
 
         [Required]
         [MaxLength(200)]
@@ -16,7 +16,6 @@ namespace Golf.Backend.Models
         [MaxLength(50)]
         public string? ExternalApiId { get; set; }
 
-        // Location information for search/display
         [MaxLength(200)]
         public string? Location { get; set; }
 

@@ -14,6 +14,7 @@ namespace Golf.Backend.Data
         public DbSet<Hole> Holes { get; set; }
         public DbSet<Round> Rounds { get; set; }
         public DbSet<RoundHole> RoundHoles { get; set; }
+        public DbSet<User> Users { get; set; }  
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -86,6 +87,16 @@ namespace Golf.Backend.Data
                     .WithMany(h => h.RoundHoles)
                     .HasForeignKey(rh => rh.HoleId)
                     .OnDelete(DeleteBehavior.Restrict); // Prevent deleting holes if rounds exist
+            });
+
+            // User configuration
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.HasKey(u => u.Id);
+                entity.Property(u => u.Username).IsRequired().HasMaxLength(100);
+                entity.Property(u => u.Email).IsRequired().HasMaxLength(200);
+                entity.HasIndex(u => u.Username).IsUnique();
+                entity.HasIndex(u => u.Email).IsUnique();
             });
         }
     }

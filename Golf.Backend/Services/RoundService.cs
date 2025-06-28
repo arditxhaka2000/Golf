@@ -41,7 +41,7 @@ namespace Golf.Backend.Services
                 .ToListAsync();
         }
 
-        public async Task<Round> SaveRoundAsync(Guid playerId, int courseId, DateTime datePlayed,
+        public async Task<Round> SaveRoundAsync(Guid playerId, Guid courseId, DateTime datePlayed,
             decimal? playerHandicap, Dictionary<int, int> holeScores)
         {
             var course = await _context.Courses
@@ -59,38 +59,31 @@ namespace Golf.Backend.Services
                 throw new ArgumentException("Player not found");
             }
 
-            // Calculate total strokes
             var totalStrokes = holeScores.Values.Sum();
-
-            // Prepare data for calculations
             var holes = course.Holes.OrderBy(h => h.HoleNumber).ToList();
+
             var holeCalculationData = holes.Select(h => (
                 strokes: holeScores.GetValueOrDefault(h.HoleNumber, 0),
                 par: h.Par,
                 handicap: h.Handicap
             )).ToList();
 
-            // Calculate gross score (Stableford points)
             var grossScore = _handicapService.CalculateGrossScore(
                 holeCalculationData.Select(h => (h.strokes, h.par)).ToList()
             );
 
-            // Calculate net score and handicap differential
-            var netScore = grossScore; // Default to gross if no handicap
+            var netScore = grossScore;
             var handicapDifferential = 0m;
 
             if (playerHandicap.HasValue)
             {
                 netScore = _handicapService.CalculateNetScore(holeCalculationData, playerHandicap.Value);
 
-                // Calculate adjusted score for handicap differential
                 var additionalStrokes = _handicapService.DistributeAdditionalStrokes(
                     playerHandicap.Value,
                     holes.Select(h => h.Handicap).ToList()
                 );
 
-                // FIX: Prepare data correctly for CalculateAdjustedScore method
-                // The method expects (int strokes, int par, int additionalStrokes)
                 var adjustedScoreData = holes.Select(h => (
                     strokes: holeScores.GetValueOrDefault(h.HoleNumber, 0),
                     par: h.Par,
@@ -103,7 +96,6 @@ namespace Golf.Backend.Services
                 );
             }
 
-            // Create round
             var round = new Round
             {
                 Id = Guid.NewGuid(),
@@ -118,7 +110,6 @@ namespace Golf.Backend.Services
                 CreatedAt = DateTime.UtcNow
             };
 
-            // Create round holes
             foreach (var hole in holes)
             {
                 var strokes = holeScores.GetValueOrDefault(hole.HoleNumber, 0);

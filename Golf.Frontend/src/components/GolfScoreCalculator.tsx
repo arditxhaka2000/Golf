@@ -17,12 +17,14 @@ import { GET_MY_HANDICAP_QUERY } from '../graphql/queries';
 
 // Interface definitions based on backend models
 interface Course {
-    id: number | null;
+    id: string | null;  // Can be null for API courses
     name: string;
     courseRating: number;
     slopeRating: number;
     location?: string;
-    externalApiId?: string;  
+    externalApiId?: string;  // This is what we use for import
+    isImported?: boolean;
+    isFromApi?: boolean;
     holes: Hole[];
 }
 
@@ -202,17 +204,19 @@ export function GolfScoreCalculator() {
     const handleCourseSelect = async (course: Course) => {
         try {
             console.log('Selected course:', course);
-            if (course.holes.length === 0) {
-                // Use externalApiId (string) instead of id (number)
+
+            if (course.holes.length === 0 && !course.isImported) {
+                // This is an API course that needs to be imported
                 if (!course.externalApiId) {
                     throw new Error('No external API ID available for import');
                 }
 
                 const { data } = await importCourse({
-                    variables: { externalId: course.externalApiId } 
+                    variables: { externalId: course.externalApiId }
                 });
                 setSelectedCourse(data.importCourse);
             } else {
+                // This is already imported or a local course
                 setSelectedCourse(course);
             }
             setShowCourseSearch(false);

@@ -3,9 +3,8 @@
     public class Round
     {
         public Guid Id { get; set; }
-
         public Guid PlayerId { get; set; }
-        public int CourseId { get; set; }
+        public Guid CourseId { get; set; } // Keep as Guid
 
         public DateTime DatePlayed { get; set; }
         public decimal? PlayerHandicapAtTime { get; set; }

@@ -65,7 +65,7 @@ namespace Golf.Backend.GraphQL.Mutations
     public record CreatePlayerInput(string Name, Gender Gender);
     public record UpdatePlayerInput(string Name, Gender Gender);
     public record SaveRoundInput(
-        int CourseId,
+        Guid CourseId,
         DateTime DatePlayed,
         decimal? PlayerHandicap,
         Dictionary<int, int> HoleScores,

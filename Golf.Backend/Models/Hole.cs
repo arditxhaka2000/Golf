@@ -5,8 +5,7 @@ namespace Golf.Backend.Models
     public class Hole
     {
         public Guid Id { get; set; }
-
-        public int CourseId { get; set; }
+        public Guid CourseId { get; set; } // Keep as Guid
 
         [Range(1, 18)]
         public int HoleNumber { get; set; }
@@ -17,9 +16,7 @@ namespace Golf.Backend.Models
         [Range(1, 18)]
         public int Handicap { get; set; }
 
-        // Yardage information if available from API
         public int? Yardage { get; set; }
-
         public DateTime CreatedAt { get; set; }
 
         // Navigation properties
