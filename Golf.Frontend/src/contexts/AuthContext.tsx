@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Validate token with backend
     const validateToken = async (token: string): Promise<boolean> => {
         try {
-            const response = await fetch('/graphql', {
+            const response = await fetch('https://localhost:7074/graphql', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

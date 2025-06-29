@@ -1,4 +1,7 @@
-﻿using Golf.Backend.Data;
+﻿// Golf.Backend/Services/CourseService.cs
+// Updated to properly handle fallback course imports
+
+using Golf.Backend.Data;
 using Golf.Backend.Models;
 using Golf.Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -65,6 +68,7 @@ namespace Golf.Backend.Services
                 var apiResults = await _apiService.SearchCoursesAsync(name);
                 foreach (var apiCourse in apiResults)
                 {
+                    // Skip if we already have this course locally
                     if (!localCourses.Any(c => c.ExternalApiId == apiCourse.ExternalApiId))
                     {
                         results.Add(apiCourse);
@@ -88,17 +92,32 @@ namespace Golf.Backend.Services
 
         public async Task<Course> ImportCourseFromApiAsync(string externalId)
         {
+            // FIXED: Check if course already exists in database
             var existingCourse = await GetCourseByExternalIdAsync(externalId);
             if (existingCourse != null)
             {
+                _logger.LogInformation("Course already exists in database: {CourseName}", existingCourse.Name);
                 return existingCourse;
             }
 
+            // FIXED: Handle both API and fallback courses through the API service
             var courseDetails = await _apiService.GetCourseDetailsAsync(externalId);
             if (courseDetails == null)
             {
-                throw new ArgumentException($"Course with external ID {externalId} not found");
+                throw new ArgumentException($"Course with external ID {externalId} not found in API or fallback data");
             }
+
+            // FIXED: For fallback courses, they should already be created by the API service
+            // Check again if it was created during the GetCourseDetailsAsync call
+            existingCourse = await GetCourseByExternalIdAsync(externalId);
+            if (existingCourse != null)
+            {
+                _logger.LogInformation("Fallback course was created during API call: {CourseName}", existingCourse.Name);
+                return existingCourse;
+            }
+
+            // If still not found, this is a regular API course - create it
+            _logger.LogInformation("Creating new API course: {CourseName}", courseDetails.Name);
 
             var course = new Course
             {
