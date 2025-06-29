@@ -1,6 +1,7 @@
+using Golf.Backend.Data;
 using Golf.Backend.Models;
-using Golf.Backend.Services.Interfaces;
 using Golf.Backend.Services;
+using Golf.Backend.Services.Interfaces;
 using HotChocolate.Types;
 
 namespace Golf.Backend.GraphQL;
@@ -114,5 +115,10 @@ public class Query
         if (player == null) throw new ArgumentException("Player profile not found");
 
         return await playerService.CalculateCurrentHandicapAsync(player.Id);
+    }
+    [GraphQLDescription("Validates if a token is still valid")]
+    public bool ValidateToken(string token)
+    {
+        return UserStore.IsValidToken(token);
     }
 }

@@ -16,6 +16,7 @@ namespace Golf.Backend.GraphQL.Mutations
     {
         public async Task<LoginPayload> Login(LoginInput input, [Service] IAuthService authService)
         {
+
             if (string.IsNullOrWhiteSpace(input.Username))
             {
                 throw new GraphQLException("Username is required");
