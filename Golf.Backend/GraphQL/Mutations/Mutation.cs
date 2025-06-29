@@ -127,20 +127,20 @@ namespace Golf.Backend.GraphQL.Mutations
                 throw new GraphQLException("Invalid or expired token");
             }
 
-            var player = await playerService.GetPlayerByUserIdAsync(user.Id);
+            var player = await playerService.EnsurePlayerExistsAsync(user.Id, user.Username);
+
             if (player == null)
             {
                 throw new GraphQLException("Player profile not found");
             }
 
-            var holeScores = input.Holes.ToDictionary(h => h.HoleNumber, h => h.Strokes);
 
             return await roundService.SaveRoundAsync(
                 playerId: player.Id,
                 courseId: input.CourseId,
                 datePlayed: input.DatePlayed,
                 playerHandicap: player.CurrentHandicap,
-                holeScores: holeScores
+                Holes: input.Holes
             );
         }
 

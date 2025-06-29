@@ -6,8 +6,8 @@ import { gql } from '@apollo/client';
 
 // REQ 1-8: Get user's rounds for handicap calculation
 export const GET_MY_ROUNDS_QUERY = gql`
-  query GetMyRounds($token: String!, $limit: Int) {
-    getMyRounds(token: $token, limit: $limit) {
+  query GetMyRounds($token: String!, $limit: Int!) {
+    myRounds(token: $token, limit: $limit) {
       id
       datePlayed
       course {

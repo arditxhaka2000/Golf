@@ -1,7 +1,9 @@
 ﻿using Golf.Backend.Data;
+using Golf.Backend.GraphQL.Mutations;
 using Golf.Backend.Models;
 using Golf.Backend.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace Golf.Backend.Services
 {
@@ -42,12 +44,14 @@ namespace Golf.Backend.Services
         }
 
         public async Task<Round> SaveRoundAsync(Guid playerId, Guid courseId, DateTime datePlayed,
-            decimal? playerHandicap, Dictionary<int, int> holeScores)
+      decimal? playerHandicap, List<RoundHoleInput> holeInputs)
         {
+            // Convert list to dictionary for easier lookup
+            var holeScores = holeInputs.ToDictionary(h => h.HoleNumber, h => h.Strokes);
+
             var course = await _context.Courses
                 .Include(c => c.Holes)
                 .FirstOrDefaultAsync(c => c.Id == courseId);
-
             if (course == null)
             {
                 throw new ArgumentException("Course not found");
@@ -72,28 +76,39 @@ namespace Golf.Backend.Services
                 holeCalculationData.Select(h => (h.strokes, h.par)).ToList()
             );
 
-            var netScore = grossScore;
-            var handicapDifferential = 0m;
+            var netScore = grossScore; // Default to gross score
 
+            // Always calculate adjusted score for handicap differential
+            var adjustedScoreData = holes.Select(h => {
+                var strokes = holeScores.GetValueOrDefault(h.HoleNumber, 0);
+                var additionalStrokes = 0;
+
+                if (playerHandicap.HasValue)
+                {
+                    var additionalStrokesDict = _handicapService.DistributeAdditionalStrokes(
+                        playerHandicap.Value,
+                        holes.Select(h => h.Handicap).ToList()
+                    );
+                    additionalStrokes = additionalStrokesDict.GetValueOrDefault(h.Handicap, 0);
+                }
+
+                return (
+                    strokes: strokes,
+                    par: h.Par,
+                    additionalStrokes: additionalStrokes
+                );
+            }).ToList();
+
+            var adjustedScore = _handicapService.CalculateAdjustedScore(adjustedScoreData);
+
+            var handicapDifferential = _handicapService.CalculateHandicapDifferential(
+                adjustedScore, course.CourseRating, course.SlopeRating
+            );
+
+            // Only calculate net score if player has handicap
             if (playerHandicap.HasValue)
             {
                 netScore = _handicapService.CalculateNetScore(holeCalculationData, playerHandicap.Value);
-
-                var additionalStrokes = _handicapService.DistributeAdditionalStrokes(
-                    playerHandicap.Value,
-                    holes.Select(h => h.Handicap).ToList()
-                );
-
-                var adjustedScoreData = holes.Select(h => (
-                    strokes: holeScores.GetValueOrDefault(h.HoleNumber, 0),
-                    par: h.Par,
-                    additionalStrokes: additionalStrokes.GetValueOrDefault(h.Handicap, 0)
-                )).ToList();
-
-                var adjustedScore = _handicapService.CalculateAdjustedScore(adjustedScoreData);
-                handicapDifferential = _handicapService.CalculateHandicapDifferential(
-                    adjustedScore, course.CourseRating, course.SlopeRating
-                );
             }
 
             var round = new Round
@@ -140,6 +155,7 @@ namespace Golf.Backend.Services
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Saved round for player {PlayerId} on course {CourseId}", playerId, courseId);
+
             return round;
         }
     }

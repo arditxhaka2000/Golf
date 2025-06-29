@@ -84,10 +84,12 @@ namespace Golf.Backend.Services
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
-                var apiCourse = JsonSerializer.Deserialize<ApiCourse>(json, new JsonSerializerOptions
+                var apiResponse = JsonSerializer.Deserialize<ApiCourseResponse>(json, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
+
+                var apiCourse = apiResponse?.Course;
 
                 if (apiCourse != null)
                 {
@@ -105,18 +107,36 @@ namespace Golf.Backend.Services
 
         private CourseSearchResult MapToCourseSearchResult(ApiCourse apiCourse)
         {
+            string courseName;
+
+            if (!string.IsNullOrEmpty(apiCourse.CourseName) && !string.IsNullOrEmpty(apiCourse.ClubName))
+            {
+                if (apiCourse.CourseName.Equals(apiCourse.ClubName, StringComparison.OrdinalIgnoreCase))
+                {
+                    courseName = apiCourse.ClubName;
+                }
+                else
+                {
+                    courseName = $"{apiCourse.ClubName} - {apiCourse.CourseName}";
+                }
+            }
+            else
+            {
+                courseName = apiCourse.ClubName ?? apiCourse.CourseName ?? "Unknown Course";
+            }
+
+            var teeBox = GetBestTeeBox(apiCourse.Tees);
+
             return new CourseSearchResult
             {
                 Id = null,
-                Name = string.IsNullOrEmpty(apiCourse.CourseName)
-                    ? apiCourse.ClubName ?? "Unknown Course"
-                    : $"{apiCourse.ClubName} - {apiCourse.CourseName}".Trim(' ', '-'),
+                Name = courseName,
                 Location = apiCourse.Location?.Address ?? string.Empty,
                 ExternalApiId = apiCourse.Id.ToString(),
                 IsImported = false,
                 IsFromApi = true,
-                CourseRating = 0,
-                SlopeRating = 0,
+                CourseRating = (decimal)(teeBox?.CourseRating ?? 72.0), 
+                SlopeRating = teeBox?.SlopeRating ?? 113,                
                 Holes = new List<Hole>()
             };
         }
@@ -187,6 +207,10 @@ namespace Golf.Backend.Services
         {
             public List<ApiCourse>? Courses { get; set; }
         }
+        private class ApiCourseResponse
+        {
+            public ApiCourse? Course { get; set; }
+        }
 
         private class ApiCourse
         {
@@ -215,9 +239,15 @@ namespace Golf.Backend.Services
 
         private class ApiTeeBox
         {
+            [JsonPropertyName("tee_name")]
             public string? TeeName { get; set; }
+
+            [JsonPropertyName("course_rating")]
             public float? CourseRating { get; set; }
+
+            [JsonPropertyName("slope_rating")]
             public int? SlopeRating { get; set; }
+
             public List<ApiHole>? Holes { get; set; }
         }
 

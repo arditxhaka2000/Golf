@@ -29,15 +29,16 @@ export function GolfHandicapCalculator() {
     const { data: roundsData, loading: roundsLoading, error: roundsError } = useQuery(GET_MY_ROUNDS_QUERY, {
         variables: {
             token: localStorage.getItem('token'),
-            limit: 20 // REQ 1-8: Show last 20 rounds
-        }
+            limit: 20
+        },
+        errorPolicy: 'ignore'
     });
 
     const { data: handicapData, loading: handicapLoading } = useQuery(GET_MY_HANDICAP_QUERY, {
         variables: { token: localStorage.getItem('token') }
     });
 
-    const rounds: Round[] = roundsData?.getMyRounds || [];
+    const rounds: Round[] = roundsData?.myRounds || [];
     const currentHandicap = handicapData?.calculateMyHandicap || 0;
 
     // REQ 1-8: Calculate which rounds are the best 8 (lowest handicap differentials)
@@ -77,17 +78,21 @@ export function GolfHandicapCalculator() {
             </div>
         );
     }
-
     // Error state
-    if (roundsError) {
-        return (
-            <div className="flex items-center justify-center py-12">
-                <div className="text-lg text-red-600">
-                    Error loading rounds: {roundsError.message}
-                </div>
-            </div>
-        );
+    if (roundsError && rounds.length === 0) {
+        // Don't show error for empty rounds, just show empty state
+        console.log('No rounds found or error occurred:', roundsError.message);
     }
+
+    //if (roundsError) {
+    //    return (
+    //        <div className="flex items-center justify-center py-12">
+    //            <div className="text-lg text-red-600">
+    //                Error loading rounds: {roundsError.message}
+    //            </div>
+    //        </div>
+    //    );
+    //}
 
     return (
         <div className="max-w-[1000px] mx-auto my-8">

@@ -1,4 +1,4 @@
-// Golf.Frontend/src/components/GolfScoreCalculator.tsx
+﻿// Golf.Frontend/src/components/GolfScoreCalculator.tsx
 // This component implements ALL requirements from Req 1-1 through Req 1-7
 // It handles score entry, color coding, gender selection, course search, and calculations
 
@@ -13,7 +13,7 @@ import {
     IMPORT_COURSE_MUTATION,
     SAVE_ROUND_MUTATION
 } from '../graphql/mutation';
-import { GET_MY_HANDICAP_QUERY } from '../graphql/queries';
+import { GET_MY_ROUNDS_QUERY, GET_MY_HANDICAP_QUERY } from '../graphql/queries';
 
 // Interface definitions based on backend models
 interface Course {
@@ -73,10 +73,30 @@ export function GolfScoreCalculator() {
     const [scores, setScores] = useState<Record<number, number>>({});
     const [showCourseSearch, setShowCourseSearch] = useState(false);
 
+    //Add loading states
+    const [isSearchingCourses, setIsSearchingCourses] = useState(false);
+    const [isImportingCourse, setIsImportingCourse] = useState(false);
+
     // GraphQL operations
     const [searchCourses] = useMutation(SEARCH_COURSES_MUTATION);
     const [importCourse] = useMutation(IMPORT_COURSE_MUTATION);
-    const [saveRound] = useMutation(SAVE_ROUND_MUTATION);
+    const [saveRound] = useMutation(SAVE_ROUND_MUTATION, {
+        refetchQueries: [
+            {
+                query: GET_MY_ROUNDS_QUERY,
+                variables: {
+                    token: localStorage.getItem('token'),
+                    limit: 20
+                }
+            },
+            {
+                query: GET_MY_HANDICAP_QUERY,
+                variables: {
+                    token: localStorage.getItem('token')
+                }
+            }
+        ]
+    });
 
     // REQ 1-8: Get handicap from saved rounds (read-only)
     const { data: handicapData } = useQuery(GET_MY_HANDICAP_QUERY, {
@@ -187,8 +207,9 @@ export function GolfScoreCalculator() {
 
     // REQ 1-3: Course search functionality
     const handleCourseSearch = async () => {
-        if (!courseSearchTerm.trim()) return;
+        if (!courseSearchTerm.trim() || isSearchingCourses) return;
 
+        setIsSearchingCourses(true);
         try {
             const { data } = await searchCourses({
                 variables: { name: courseSearchTerm }
@@ -197,33 +218,49 @@ export function GolfScoreCalculator() {
         } catch (error) {
             console.error('Error searching courses:', error);
             alert('Error searching courses. Please try again.');
+        } finally {
+            setIsSearchingCourses(false);
         }
     };
 
     // REQ 1-3: Course selection and import
     const handleCourseSelect = async (course: Course) => {
+        if (isImportingCourse) return;
+
         try {
             console.log('Selected course:', course);
-
+            
             if (course.holes.length === 0 && !course.isImported) {
-                // This is an API course that needs to be imported
                 if (!course.externalApiId) {
                     throw new Error('No external API ID available for import');
                 }
 
+                setIsImportingCourse(true);
                 const { data } = await importCourse({
                     variables: { externalId: course.externalApiId }
                 });
-                setSelectedCourse(data.importCourse);
+
+
+                const importedCourse = {
+                    ...data.importCourse,
+                    name: data.importCourse.name || course.name, 
+                    location: data.importCourse.location || course.location 
+
+                };
+                console.log('qitu', importedCourse);
+
+                setSelectedCourse(importedCourse);
             } else {
-                // This is already imported or a local course
                 setSelectedCourse(course);
             }
             setShowCourseSearch(false);
             setCourseSearchTerm('');
+            setSearchResults([]);
         } catch (error) {
             console.error('Error importing course:', error);
             alert('Error importing course. Please try again.');
+        } finally {
+            setIsImportingCourse(false);
         }
     };
 
@@ -239,7 +276,6 @@ export function GolfScoreCalculator() {
 
     // REQ 1-8: Save round functionality
     const handleSaveRound = async () => {
-        // Validation
         const completedHoles = Object.keys(scores).length;
         if (completedHoles !== 18) {
             alert(`Please complete all 18 holes before saving. (${completedHoles}/18 completed)`);
@@ -253,13 +289,19 @@ export function GolfScoreCalculator() {
 
         try {
             const token = localStorage.getItem('token');
+
+            // Convert scores object to array of hole objects
+            const holes = Object.entries(scores).map(([holeNumber, strokes]) => ({
+                holeNumber: parseInt(holeNumber),
+                strokes: strokes
+            }));
+
             await saveRound({
                 variables: {
                     input: {
                         courseId: selectedCourse.id,
                         datePlayed: new Date().toISOString(),
-                        playerHandicap: userHandicap,
-                        holeScores: scores
+                        holes: holes  // Changed from holeScores to holes
                     },
                     token
                 }
@@ -267,7 +309,6 @@ export function GolfScoreCalculator() {
 
             alert('Round saved successfully!');
 
-            // Optional: Clear scores for new round
             const clearScores = confirm('Round saved! Would you like to clear scores for a new round?');
             if (clearScores) {
                 setScores({});
@@ -282,6 +323,11 @@ export function GolfScoreCalculator() {
     const renderStrokeIndicators = (hole: Hole) => {
         const extraStrokes = Math.abs(additionalStrokes[hole.handicap] || 0);
         return '/'.repeat(extraStrokes);
+    };
+    const handleClearCourse = () => {
+        setSelectedCourse(null);
+        setCourseSearchTerm('');
+        setSearchResults([]);
     };
 
     return (
@@ -320,23 +366,30 @@ export function GolfScoreCalculator() {
                     </div>
 
                     {/* REQ 1-3: Course Name with Search */}
-                    <div className="flex-1">
+                    <div className="flex-3">
                         <label className="block text-xs font-medium mb-1">Course Name</label>
                         <div className="flex gap-2">
                             <Input
                                 type="text"
-                                placeholder={selectedCourse ? selectedCourse.name : "Search for course..."}
-                                value={selectedCourse?.name || courseSearchTerm}
-                                onChange={(e) => !selectedCourse && setCourseSearchTerm(e.target.value)}
+                                placeholder="Click Search to find courses..."
+                                value={selectedCourse ? (selectedCourse.name || course.name) : ''}
                                 readOnly={!!selectedCourse}
+                                className={`${selectedCourse ? '' : 'cursor-pointer'} text-base flex-1 truncate`}
+                                title={selectedCourse?.name} // Shows full name on hover
+                                onClick={() => !selectedCourse && setShowCourseSearch(true)}
                             />
                             <Button
                                 variant="outline"
-                                onClick={() => selectedCourse ? setSelectedCourse(null) : setShowCourseSearch(true)}
+                                onClick={() => selectedCourse ? handleClearCourse() : setShowCourseSearch(true)}
                             >
                                 {selectedCourse ? 'Change' : 'Search'}
                             </Button>
                         </div>
+                        {selectedCourse && (
+                            <div className="text-xs text-green-600 mt-1">
+                                ✓ Course selected: {selectedCourse.holes.length} holes loaded
+                            </div>
+                        )}
                     </div>
 
                     {/* REQ 1-3: Course Rating (from API) */}
@@ -386,36 +439,74 @@ export function GolfScoreCalculator() {
                                 value={courseSearchTerm}
                                 onChange={(e) => setCourseSearchTerm(e.target.value)}
                                 placeholder="Enter course name..."
-                                onKeyPress={(e) => e.key === 'Enter' && handleCourseSearch()}
+                                onKeyPress={(e) => e.key === 'Enter' && !isSearchingCourses && handleCourseSearch()}
+                                disabled={isSearchingCourses}
                             />
-                            <Button onClick={handleCourseSearch}>Search</Button>
+                            <Button
+                                onClick={handleCourseSearch}
+                                disabled={isSearchingCourses || !courseSearchTerm.trim()}
+                            >
+                                {isSearchingCourses ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        Searching...
+                                    </div>
+                                ) : (
+                                    'Search'
+                                )}
+                            </Button>
                         </div>
 
                         <div className="max-h-60 overflow-y-auto">
-                            {searchResults.length === 0 && courseSearchTerm && (
+                            {isSearchingCourses && (
+                                <div className="text-center py-8">
+                                    <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                                    <p className="text-gray-600">Searching for courses...</p>
+                                </div>
+                            )}
+
+                            {!isSearchingCourses && searchResults.length === 0 && courseSearchTerm && (
                                 <p className="text-center text-gray-500 py-4">
                                     No courses found. Try a different search term.
                                 </p>
                             )}
-                            {searchResults.map((course) => (
+
+                            {!isSearchingCourses && searchResults.map((course, index) => (
                                 <div
-                                    key={course.id}
-                                    className="p-3 border rounded cursor-pointer hover:bg-gray-50 mb-2"
-                                    onClick={() => handleCourseSelect(course)}
+                                    key={course.id || index}
+                                    className={`p-3 border rounded cursor-pointer hover:bg-gray-50 mb-2 ${isImportingCourse ? 'opacity-50 cursor-not-allowed' : ''
+                                        }`}
+                                    onClick={() => !isImportingCourse && handleCourseSelect(course)}
                                 >
                                     <div className="font-medium">{course.name}</div>
                                     {course.location && (
                                         <div className="text-sm text-gray-600">{course.location}</div>
                                     )}
-                                    {course.holes.length === 0 && (
-                                        <div className="text-xs text-blue-600">Will import from API</div>
+                                    {!course.isImported && course.isFromApi && (
+                                        <div className="text-xs text-blue-600">
+                                            {isImportingCourse ? 'Importing...' : 'Will import from API'}
+                                        </div>
+                                    )}
+                                    {course.isImported && (
+                                        <div className="text-xs text-green-600">Available locally</div>
                                     )}
                                 </div>
                             ))}
                         </div>
 
+                        {isImportingCourse && (
+                            <div className="text-center py-2 text-blue-600">
+                                <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-1"></div>
+                                Importing course data...
+                            </div>
+                        )}
+
                         <div className="flex justify-end gap-2 mt-4">
-                            <Button variant="outline" onClick={() => setShowCourseSearch(false)}>
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowCourseSearch(false)}
+                                disabled={isImportingCourse}
+                            >
                                 Cancel
                             </Button>
                         </div>

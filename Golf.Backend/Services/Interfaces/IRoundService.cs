@@ -1,4 +1,5 @@
-﻿using Golf.Backend.Models;
+﻿using Golf.Backend.GraphQL.Mutations;
+using Golf.Backend.Models;
 
 namespace Golf.Backend.Services.Interfaces
 {
@@ -7,6 +8,6 @@ namespace Golf.Backend.Services.Interfaces
         Task<Round?> GetRoundAsync(Guid id);
         Task<IEnumerable<Round>> GetPlayerRoundsAsync(Guid playerId, int limit = 20);
         Task<Round> SaveRoundAsync(Guid playerId, Guid courseId, DateTime datePlayed,
-            decimal? playerHandicap, Dictionary<int, int> holeScores);
+            decimal? playerHandicap, List<RoundHoleInput> Holes);
     }
 }

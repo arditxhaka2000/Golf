@@ -69,9 +69,13 @@ namespace Golf.Backend.Services
 
             var sortedDiffs = handicapDifferentials.OrderBy(d => d).ToList();
 
-            // Take best 8 from last 20 (or available count)
-            var numberOfScoresToUse = Math.Min(8, sortedDiffs.Count / 2);
-            if (numberOfScoresToUse == 0) numberOfScoresToUse = 1;
+            int numberOfScoresToUse;
+            if (sortedDiffs.Count >= 20)
+                numberOfScoresToUse = 8;
+            else if (sortedDiffs.Count >= 10)
+                numberOfScoresToUse = Math.Min(8, sortedDiffs.Count - 2);
+            else
+                numberOfScoresToUse = sortedDiffs.Count; 
 
             var bestDiffs = sortedDiffs.Take(numberOfScoresToUse);
             return Math.Round(bestDiffs.Average(), 1);

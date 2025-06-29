@@ -51,7 +51,7 @@ namespace Golf.Backend.GraphQL.Mutations
                 input.CourseId,
                 input.DatePlayed,
                 input.PlayerHandicap,
-                input.HoleScores);
+                input.Holes);
         }
 
         // Course mutations
@@ -68,6 +68,5 @@ namespace Golf.Backend.GraphQL.Mutations
         Guid CourseId,
         DateTime DatePlayed,
         decimal? PlayerHandicap,
-        Dictionary<int, int> HoleScores,
             List<RoundHoleInput> Holes);
 }
