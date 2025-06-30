@@ -1,5 +1,5 @@
 ﻿// Golf.Frontend/src/components/GolfHandicapCalculator.tsx
-// Enhanced mobile-responsive version with improved UX
+// Enhanced mobile-responsive version with improved UX and delete functionality
 // REQ 1-8: Mobile-optimized handicap calculator with enhanced features
 
 import React, { useState, useEffect } from 'react';
@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { useAuth } from '../contexts/AuthContext';
-import { useQuery } from '@apollo/client';
+import { useQuery, useMutation } from '@apollo/client';
 import { GET_MY_ROUNDS_QUERY, GET_MY_HANDICAP_QUERY } from '../graphql/queries';
+import { DELETE_ROUND_MUTATION } from '../graphql/mutation';
 import { HandicapTrendChart } from './HandicapTrendChart';
 
 // Enhanced interface for round data
@@ -42,6 +43,7 @@ export function GolfHandicapCalculator() {
     const [expandedRound, setExpandedRound] = useState<string | null>(null);
     const [filterPeriod, setFilterPeriod] = useState<'all' | '6months' | '3months' | '1month'>('all');
     const [sortBy, setSortBy] = useState<'date' | 'score' | 'differential'>('date');
+    const [deletingRoundId, setDeletingRoundId] = useState<string | null>(null);
 
     // Fetch data
     const { data: roundsData, loading: roundsLoading, error: roundsError } = useQuery(GET_MY_ROUNDS_QUERY, {
@@ -56,6 +58,23 @@ export function GolfHandicapCalculator() {
         variables: { token: localStorage.getItem('token') }
     });
 
+    // Delete mutation
+    const [deleteRound] = useMutation(DELETE_ROUND_MUTATION, {
+        refetchQueries: [
+            {
+                query: GET_MY_ROUNDS_QUERY,
+                variables: {
+                    token: localStorage.getItem('token'),
+                    limit: 20
+                }
+            },
+            {
+                query: GET_MY_HANDICAP_QUERY,
+                variables: { token: localStorage.getItem('token') }
+            }
+        ]
+    });
+
     const rounds: Round[] = roundsData?.myRounds || [];
     const currentHandicap = handicapData?.calculateMyHandicap || 0;
 
@@ -66,6 +85,33 @@ export function GolfHandicapCalculator() {
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
+
+    // Delete handler
+    const handleDeleteRound = async (roundId: string) => {
+        if (!confirm('Are you sure you want to delete this round? This action cannot be undone.')) {
+            return;
+        }
+
+        setDeletingRoundId(roundId);
+        try {
+            const { data } = await deleteRound({
+                variables: {
+                    roundId,
+                    token: localStorage.getItem('token')
+                }
+            });
+
+            if (data?.deleteRound?.success) {
+                // Success - the refetchQueries will automatically update the UI
+                console.log('Round deleted successfully');
+            }
+        } catch (error) {
+            console.error('Error deleting round:', error);
+            alert('Failed to delete round. Please try again.');
+        } finally {
+            setDeletingRoundId(null);
+        }
+    };
 
     // Filter rounds based on selected period
     const filteredRounds = React.useMemo(() => {
@@ -188,8 +234,8 @@ export function GolfHandicapCalculator() {
             <button
                 onClick={() => setViewMode('summary')}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'summary'
-                        ? 'bg-white text-blue-600 shadow-sm'
-                        : 'text-gray-600'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600'
                     }`}
             >
                 📊 Summary
@@ -197,8 +243,8 @@ export function GolfHandicapCalculator() {
             <button
                 onClick={() => setViewMode('details')}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'details'
-                        ? 'bg-white text-blue-600 shadow-sm'
-                        : 'text-gray-600'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600'
                     }`}
             >
                 📋 Rounds
@@ -206,8 +252,8 @@ export function GolfHandicapCalculator() {
             <button
                 onClick={() => setViewMode('trends')}
                 className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${viewMode === 'trends'
-                        ? 'bg-white text-blue-600 shadow-sm'
-                        : 'text-gray-600'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600'
                     }`}
             >
                 📈 Trends
@@ -393,15 +439,36 @@ export function GolfHandicapCalculator() {
                                         </div>
 
                                         {isExpanded && (
-                                            <div className="mt-3 pt-3 border-t grid grid-cols-2 gap-4 text-sm">
-                                                <div>
-                                                    <span className="text-gray-600">Gross Score:</span>
-                                                    <span className="ml-1 font-medium">{round.grossScore}</span>
+                                            <div className="mt-3 pt-3 border-t">
+                                                <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                                                    <div>
+                                                        <span className="text-gray-600">Gross Score:</span>
+                                                        <span className="ml-1 font-medium">{round.grossScore}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span className="text-gray-600">Net Score:</span>
+                                                        <span className="ml-1 font-medium">{round.netScore}</span>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <span className="text-gray-600">Net Score:</span>
-                                                    <span className="ml-1 font-medium">{round.netScore}</span>
-                                                </div>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation(); // Prevent card expansion toggle
+                                                        handleDeleteRound(round.id);
+                                                    }}
+                                                    disabled={deletingRoundId === round.id}
+                                                    className="w-full text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                >
+                                                    {deletingRoundId === round.id ? (
+                                                        <span className="flex items-center justify-center gap-1">
+                                                            <span className="w-3 h-3 border border-red-600 border-t-transparent rounded-full animate-spin"></span>
+                                                            Deleting...
+                                                        </span>
+                                                    ) : (
+                                                        '🗑️ Delete Round'
+                                                    )}
+                                                </Button>
                                             </div>
                                         )}
                                     </div>
@@ -412,13 +479,14 @@ export function GolfHandicapCalculator() {
                         // Desktop: Table layout
                         <div className="space-y-2">
                             {/* Header Row */}
-                            <div className="grid grid-cols-6 gap-4 font-semibold text-sm border-b pb-2">
+                            <div className="grid grid-cols-7 gap-4 font-semibold text-sm border-b pb-2">
                                 <div>Date</div>
                                 <div>Course</div>
                                 <div>Total Strokes</div>
                                 <div>Gross Score</div>
                                 <div>Net Score</div>
                                 <div>Handicap Diff</div>
+                                <div>Actions</div>
                             </div>
 
                             {/* Data Rows */}
@@ -427,7 +495,7 @@ export function GolfHandicapCalculator() {
                                 return (
                                     <div
                                         key={round.id}
-                                        className={`grid grid-cols-6 gap-4 py-2 px-3 rounded text-sm transition-colors ${isBest8
+                                        className={`grid grid-cols-7 gap-4 py-2 px-3 rounded text-sm transition-colors ${isBest8
                                                 ? 'bg-green-50 border border-green-200 font-medium shadow-sm'
                                                 : 'hover:bg-gray-50'
                                             }`}
@@ -444,6 +512,24 @@ export function GolfHandicapCalculator() {
                                             {isBest8 && (
                                                 <span className="ml-2 text-green-600 text-sm">★</span>
                                             )}
+                                        </div>
+                                        <div>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => handleDeleteRound(round.id)}
+                                                disabled={deletingRoundId === round.id}
+                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                            >
+                                                {deletingRoundId === round.id ? (
+                                                    <span className="flex items-center gap-1">
+                                                        <span className="w-3 h-3 border border-red-600 border-t-transparent rounded-full animate-spin"></span>
+                                                        Deleting...
+                                                    </span>
+                                                ) : (
+                                                    'Delete'
+                                                )}
+                                            </Button>
                                         </div>
                                     </div>
                                 );
@@ -475,8 +561,8 @@ export function GolfHandicapCalculator() {
                 <CardContent>
                     <div className="space-y-4">
                         <div className={`p-3 rounded-lg ${statistics.improvementTrend === 'improving' ? 'bg-green-50 border border-green-200' :
-                                statistics.improvementTrend === 'declining' ? 'bg-red-50 border border-red-200' :
-                                    'bg-blue-50 border border-blue-200'
+                            statistics.improvementTrend === 'declining' ? 'bg-red-50 border border-red-200' :
+                                'bg-blue-50 border border-blue-200'
                             }`}>
                             <div className={`font-medium ${isMobile ? 'text-sm' : 'text-base'}`}>
                                 {statistics.improvementTrend === 'improving' && '🎉 You\'re improving!'}

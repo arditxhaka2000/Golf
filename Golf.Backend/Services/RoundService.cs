@@ -158,5 +158,41 @@ namespace Golf.Backend.Services
 
             return round;
         }
+        public async Task<bool> DeleteRoundAsync(Guid roundId, string userId)
+        {
+            try
+            {
+                // First, get the round and verify ownership
+                var round = await _context.Rounds
+                    .Include(r => r.Player)
+                    .Include(r => r.RoundHoles)
+                    .FirstOrDefaultAsync(r => r.Id == roundId);
+
+                if (round == null)
+                {
+                    _logger.LogWarning("Round not found: {RoundId}", roundId);
+                    return false;
+                }
+
+                // Verify the round belongs to the user
+                if (round.Player.UserId != userId)
+                {
+                    _logger.LogWarning("User {UserId} attempted to delete round {RoundId} owned by different user", userId, roundId);
+                    return false;
+                }
+
+                // Delete the round (RoundHoles will be cascade deleted)
+                _context.Rounds.Remove(round);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Deleted round {RoundId} for user {UserId}", roundId, userId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting round {RoundId}", roundId);
+                return false;
+            }
+        }
     }
 }

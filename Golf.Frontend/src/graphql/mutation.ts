@@ -98,3 +98,11 @@ export const CREATE_PLAYER_MUTATION = gql`
     }
   }
 `;
+export const DELETE_ROUND_MUTATION = gql`
+  mutation DeleteRound($roundId: UUID!, $token: String!) {
+    deleteRound(roundId: $roundId, token: $token) {
+      success
+      message
+    }
+  }
+`;

@@ -9,5 +9,6 @@ namespace Golf.Backend.Services.Interfaces
         Task<IEnumerable<Round>> GetPlayerRoundsAsync(Guid playerId, int limit = 20);
         Task<Round> SaveRoundAsync(Guid playerId, Guid courseId, DateTime datePlayed,
             decimal? playerHandicap, List<RoundHoleInput> Holes);
+        Task<bool> DeleteRoundAsync(Guid roundId, string userId);
     }
 }

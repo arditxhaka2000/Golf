@@ -154,6 +154,27 @@ namespace Golf.Backend.GraphQL.Mutations
         {
             return await courseService.SearchCoursesAsync(name);
         }
+        public async Task<DeleteRoundPayload> DeleteRound(Guid roundId, string token, [Service] IRoundService roundService, [Service] IAuthService authService)
+        {
+            var user = await authService.GetCurrentUserAsync(token);
+            if (user == null)
+            {
+                throw new GraphQLException("Invalid or expired token");
+            }
+
+            var success = await roundService.DeleteRoundAsync(roundId, user.Id);
+
+            if (!success)
+            {
+                throw new GraphQLException("Round not found or you don't have permission to delete it");
+            }
+
+            return new DeleteRoundPayload
+            {
+                Success = true,
+                Message = "Round deleted successfully"
+            };
+        }
     }
 
     // Input/Output records
@@ -174,6 +195,11 @@ namespace Golf.Backend.GraphQL.Mutations
     }
 
     public record LogoutPayload
+    {
+        public bool Success { get; init; }
+        public string Message { get; init; } = string.Empty;
+    }
+    public record DeleteRoundPayload
     {
         public bool Success { get; init; }
         public string Message { get; init; } = string.Empty;
