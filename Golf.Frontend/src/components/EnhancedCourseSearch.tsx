@@ -54,14 +54,16 @@ export function EnhancedCourseSearch({ onCourseSelect, onClose }: EnhancedCourse
     // Check if we're in offline mode by attempting a simple connectivity check
     const checkConnectivity = useCallback(async () => {
         try {
-            // Simple connectivity check - try to reach the backend
-            const response = await fetch('https://localhost:7074/graphql', {
+            const isProduction = window.location.protocol === 'https:';
+            const baseUrl = isProduction
+                ? 'https://localhost:7074/graphql'
+                : 'http://localhost:5129/graphql';
+
+            const response = await fetch(baseUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    query: 'query { hello }'
-                }),
-                signal: AbortSignal.timeout(3000) // 3 second timeout
+                body: JSON.stringify({ query: 'query { hello }' }),
+                signal: AbortSignal.timeout(3000)
             });
             return response.ok;
         } catch {
