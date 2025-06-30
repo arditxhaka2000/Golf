@@ -92,7 +92,7 @@ namespace Golf.Backend.Services
 
         public async Task<Course> ImportCourseFromApiAsync(string externalId)
         {
-            // FIXED: Check if course already exists in database
+            // Check if course already exists in database
             var existingCourse = await GetCourseByExternalIdAsync(externalId);
             if (existingCourse != null)
             {
@@ -100,14 +100,14 @@ namespace Golf.Backend.Services
                 return existingCourse;
             }
 
-            // FIXED: Handle both API and fallback courses through the API service
+            // Handle both API and fallback courses through the API service
             var courseDetails = await _apiService.GetCourseDetailsAsync(externalId);
             if (courseDetails == null)
             {
                 throw new ArgumentException($"Course with external ID {externalId} not found in API or fallback data");
             }
 
-            // FIXED: For fallback courses, they should already be created by the API service
+            // For fallback courses, they should already be created by the API service
             // Check again if it was created during the GetCourseDetailsAsync call
             existingCourse = await GetCourseByExternalIdAsync(externalId);
             if (existingCourse != null)

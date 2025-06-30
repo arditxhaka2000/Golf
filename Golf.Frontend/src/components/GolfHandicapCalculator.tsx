@@ -135,7 +135,7 @@ export function GolfHandicapCalculator() {
         return rounds.filter(round => new Date(round.datePlayed) >= cutoffDate);
     }, [rounds, filterPeriod]);
 
-    // Sort rounds - FIXED: Create copy before sorting
+    // Sort rounds : Create copy before sorting
     const sortedRounds = React.useMemo(() => {
         // Create a copy of the filtered rounds to avoid mutating the original array
         const roundsCopy = [...filteredRounds];
@@ -195,7 +195,7 @@ export function GolfHandicapCalculator() {
             else if (recentAvg > previousAvg + 0.5) improvementTrend = 'declining';
         }
 
-        // FIXED: Create a copy before sorting to avoid read-only array error
+        //  Create a copy before sorting to avoid read-only array error
         const roundsCopy = [...rounds];
         const best8Diffs = roundsCopy
             .sort((a, b) => a.handicapDifferential - b.handicapDifferential)
